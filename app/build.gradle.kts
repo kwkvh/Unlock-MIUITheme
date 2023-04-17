@@ -1,5 +1,7 @@
 @file:Suppress("UnstableApiUsage")
+@file:SuppressLint("ChromeOsAbiSupport")
 
+import android.annotation.SuppressLint
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
 plugins {
@@ -16,7 +18,7 @@ android {
         minSdk = 30
         targetSdk = 33
         versionCode = 17
-        versionName = "1.7"
+        versionName = "1.7.3-for 0.07"
         ndk.abiFilters += "arm64-v8a"
     }
     buildTypes {
@@ -30,7 +32,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    packagingOptions {
+    packaging {
         resources {
             excludes += "/META-INF/**"
             excludes += "/kotlin/**"
@@ -41,7 +43,8 @@ android {
         }
         applicationVariants.all {
             outputs.all {
-                (this as BaseVariantOutputImpl).outputFileName = "FuckMiuiThemeManager-$versionName.apk"
+                (this as BaseVariantOutputImpl).outputFileName =
+                    "FuckMiuiThemeManager-$versionName.apk"
             }
         }
     }
