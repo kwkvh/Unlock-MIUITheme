@@ -1,0 +1,3 @@
+<resources>
+    <string name="xposed_init">作用域必须包含全部作用域，且系统框架生效需重启手机！！\n仅供学习交流使用，请勿发布到官方平台</string>
+</resources>
