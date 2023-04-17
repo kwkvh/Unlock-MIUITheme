@@ -32,7 +32,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    packaging {
+    packagingOptions {
         resources {
             excludes += "/META-INF/**"
             excludes += "/kotlin/**"
