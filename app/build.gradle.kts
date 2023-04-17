@@ -18,7 +18,7 @@ android {
         minSdk = 30
         targetSdk = 33
         versionCode = 17
-        versionName = "1.7.3-for 0.07"
+        versionName = "1.7.2-for 0.07"
         ndk.abiFilters += "arm64-v8a"
     }
     buildTypes {
