@@ -16,9 +16,9 @@ android {
     defaultConfig {
         applicationId = namespace
         minSdk = 30
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 17
-        versionName = "1.7.3-for 0.07"
+        versionName = "1.7.4-for 0.07"
         ndk.abiFilters += "arm64-v8a"
     }
     buildTypes {
@@ -52,6 +52,6 @@ android {
 
 dependencies {
     compileOnly("de.robv.android.xposed:api:82")
-    implementation("com.github.kyuubiran:EzXHelper:1.0.3")
-    implementation("org.luckypray:DexKit:1.1.4")
+    implementation("com.github.kyuubiran:EzXHelper:2.0.5")
+    implementation("org.luckypray:DexKit:1.1.8")
 }
