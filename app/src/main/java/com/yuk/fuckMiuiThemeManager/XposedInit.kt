@@ -1,17 +1,15 @@
 package com.yuk.fuckMiuiThemeManager
 
-import com.github.kyuubiran.ezxhelper.init.EzXHelperInit
-import com.github.kyuubiran.ezxhelper.utils.findAllMethods
-import com.github.kyuubiran.ezxhelper.utils.findField
-import com.github.kyuubiran.ezxhelper.utils.findMethod
-import com.github.kyuubiran.ezxhelper.utils.getObject
-import com.github.kyuubiran.ezxhelper.utils.hookAfter
-import com.github.kyuubiran.ezxhelper.utils.hookBefore
-import com.github.kyuubiran.ezxhelper.utils.hookMethod
-import com.github.kyuubiran.ezxhelper.utils.invokeMethod
-import com.github.kyuubiran.ezxhelper.utils.loadClass
-import com.github.kyuubiran.ezxhelper.utils.putObject
-import com.github.kyuubiran.ezxhelper.utils.unhookAll
+import com.github.kyuubiran.ezxhelper.ClassUtils.loadClass
+import com.github.kyuubiran.ezxhelper.EzXHelper
+import com.github.kyuubiran.ezxhelper.HookFactory.`-Static`.createHook
+import com.github.kyuubiran.ezxhelper.HookFactory.`-Static`.createHooks
+import com.github.kyuubiran.ezxhelper.Log
+import com.github.kyuubiran.ezxhelper.finders.FieldFinder.`-Static`.fieldFinder
+import com.github.kyuubiran.ezxhelper.finders.MethodFinder.`-Static`.methodFinder
+import com.yuk.fuckMiuiThemeManager.utils.callMethod
+import com.yuk.fuckMiuiThemeManager.utils.getObjectField
+import com.yuk.fuckMiuiThemeManager.utils.setObjectField
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
@@ -26,146 +24,187 @@ private const val TAG = "FuckThemeManager"
 class XposedInit : IXposedHookLoadPackage {
 
     override fun handleLoadPackage(lpparam: LoadPackageParam) {
-        EzXHelperInit.setLogTag(TAG)
-        EzXHelperInit.setToastTag(TAG)
-        EzXHelperInit.initHandleLoadPackage(lpparam)
+        EzXHelper.setLogTag(TAG)
+        EzXHelper.setToastTag(TAG)
+        EzXHelper.initHandleLoadPackage(lpparam)
         when (lpparam.packageName) {
             "android" -> {
                 var hook: List<XC_MethodHook.Unhook>? = null
-                findMethod(ThemeReceiver::class.java) {
-                    name == "validateTheme"
-                }.hookMethod {
-                    before {
-                        hook = findAllMethods(DrmManager::class.java) {
-                            name == "isLegal"
-                        }.hookBefore {
-                            it.result = DrmManager.DrmResult.DRM_SUCCESS
+                try {
+                    ThemeReceiver::class.java.methodFinder().filterByName("validateTheme").first().createHook {
+                        before {
+                            hook = DrmManager::class.java.methodFinder().filterByName("isLegal").toList().createHooks {
+                                returnConstant(DrmManager.DrmResult.DRM_SUCCESS)
+                            }
+                        }
+                        after {
+                            hook?.forEach { it.unhook() }
                         }
                     }
-                    after {
-                        hook?.unhookAll()
-                    }
+                } catch (t: Throwable) {
+                    Log.ex(t)
                 }
             }
 
             "com.android.thememanager" -> {
-                findAllMethods("com.android.thememanager.detail.theme.model.OnlineResourceDetail") {
-                    name == "toResource"
-                }.hookAfter {
-                    it.thisObject.putObject("bought", true)
+                try {
+                    loadClass("com.android.thememanager.detail.theme.model.OnlineResourceDetail")
+                        .methodFinder().filterByName("toResource").toList().createHooks {
+                        after {
+                            it.thisObject.setObjectField("bought", true)
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.ex(t)
                 }
-                findAllMethods("com.android.thememanager.basemodule.views.DiscountPriceView") {
-                    parameterCount == 2 && parameterTypes[0] == Int::class.javaPrimitiveType && parameterTypes[1] == Int::class.javaPrimitiveType
-                }.hookBefore {
-                    it.args[1] = 0
+                try {
+                    loadClass("com.android.thememanager.basemodule.views.DiscountPriceView")
+                        .methodFinder().filterByParamCount(2)
+                        .filterByParamTypes(Int::class.java, Int::class.java).filterByReturnType(Void.TYPE).toList().createHooks {
+                            before {
+                                it.args[1] = 0
+                            }
+                        }
+                } catch (t: Throwable) {
+                    Log.ex(t)
                 }
-                findMethod("com.miui.maml.widget.edit.MamlutilKt") {
-                    name == "themeManagerSupportPaidWidget"
-                }.hookAfter {
-                    it.result = false
+                try {
+                    loadClass("com.miui.maml.widget.edit.MamlutilKt").methodFinder().filterByName("themeManagerSupportPaidWidget").first().createHook {
+                        returnConstant(false)
+                    }
+                } catch (t: Throwable) {
+                    Log.ex(t)
                 }
+
                 System.loadLibrary("dexkit")
                 DexKitBridge.create(lpparam.appInfo.sourceDir)?.use { bridge ->
                     val map = mapOf(
-                        "DrmResult" to setOf("theme", "ThemeManagerTag", "/system"),
-                        "LargeIcon" to setOf("apply failed", "/data/system/theme/large_icons/", "default_large_icon_product_id"),
+                        "DrmResult" to setOf(
+                            "theme",
+                            "ThemeManagerTag",
+                            "/system",
+                            "check rights isLegal:"
+                        ),
+                        "LargeIcon" to setOf(
+                            "apply failed",
+                            "/data/system/theme/large_icons/",
+                            "default_large_icon_product_id",
+                            "largeicons",
+                            "relativePackageList is empty"
+                        ),
                     )
+
                     val resultMap = bridge.batchFindMethodsUsingStrings {
                         queryMap(map)
                     }
+
                     val drmResult = resultMap["DrmResult"]!!
                     assert(drmResult.size == 1)
                     val drmResultDescriptor = drmResult.first()
-                    val drmResultMethod: Method = drmResultDescriptor.getMethodInstance(lpparam.classLoader)
-                    drmResultMethod.hookAfter {
-                        it.result = DrmManager.DrmResult.DRM_SUCCESS
+                    val drmResultMethod: Method =
+                        drmResultDescriptor.getMethodInstance(lpparam.classLoader)
+                    drmResultMethod.createHook {
+                        after {
+                            it.result = DrmManager.DrmResult.DRM_SUCCESS
+                        }
                     }
+
                     val largeIcon = resultMap["LargeIcon"]!!
                     assert(largeIcon.size == 1)
                     val largeIconDescriptor = largeIcon.first()
-                    val largeIconMethod: Method = largeIconDescriptor.getMethodInstance(lpparam.classLoader)
-                    largeIconMethod.hookBefore {
-                        val resource = findField(it.thisObject.javaClass) {
-                            type == loadClass("com.android.thememanager.basemodule.resource.model.Resource", lpparam.classLoader)
+                    val largeIconMethod: Method =
+                        largeIconDescriptor.getMethodInstance(lpparam.classLoader)
+                    largeIconMethod.createHook {
+                        before {
+                            val resource = it.thisObject.javaClass.fieldFinder()
+                                .filterByType(
+                                    loadClass(
+                                        "com.android.thememanager.basemodule.resource.model.Resource",
+                                        lpparam.classLoader
+                                    )
+                                ).first()
+                            val productId = it.thisObject.getObjectField(resource.name)
+                                ?.callMethod("getProductId").toString()
+                            val strPath =
+                                "/storage/emulated/0/Android/data/com.android.thememanager/files/MIUI/theme/.data/rights/theme/${productId}-largeicons.mra"
+                            val file = File(strPath)
+                            val fileParent = file.parentFile!!
+                            if (!fileParent.exists()) fileParent.mkdirs()
+                            file.createNewFile()
                         }
-                        val productId = it.thisObject.getObject(resource.name).invokeMethod("getProductId").toString()
-                        val strPath = "/storage/emulated/0/Android/data/com.android.thememanager/files/MIUI/theme/.data/rights/theme/${productId}-largeicons.mra"
-                        val file = File(strPath)
-                        val fileParent = file.parentFile!!
-                        if (!fileParent.exists()) fileParent.mkdirs()
-                        file.createNewFile()
                     }
                 }
             }
 
             "com.miui.personalassistant" -> {
-                findMethod("com.miui.maml.widget.edit.MamlutilKt") {
-                    name == "themeManagerSupportPaidWidget"
-                }.hookAfter {
-                    it.result = false
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel") {
-                    name == "isCanDirectAddMaMl"
-                }.hookAfter {
-                    it.result = true
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.utils.PickerDetailDownloadManager\$Companion") {
-                    name == "isCanDownload"
-                }.hookBefore {
-                    it.result = true
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.utils.PickerDetailUtil") {
-                    name == "isCanAutoDownloadMaMl"
-                }.hookBefore {
-                    it.result = true
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponse") {
-                    name == "isPay"
-                }.hookBefore {
-                    it.result = false
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponse") {
-                    name == "isBought"
-                }.hookBefore {
-                    it.result = true
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponseWrapper") {
-                    name == "isPay"
-                }.hookBefore {
-                    it.result = false
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponseWrapper") {
-                    name == "isBought"
-                }.hookBefore {
-                    it.result = true
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel") {
-                    name == "shouldCheckMamlBoughtState"
-                }.hookAfter {
-                    it.result = false
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel") {
-                    name == "isTargetPositionMamlPayAndDownloading"
-                }.hookAfter {
-                    it.result = false
-                }
-                findMethod("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel") {
-                    name == "checkIsIndependentProcessWidgetForPosition"
-                }.hookAfter {
-                    it.result = true
+                try {
+                    loadClass("com.miui.maml.widget.edit.MamlutilKt").methodFinder().filterByName("themeManagerSupportPaidWidget").first().createHook {
+                        returnConstant(false)
+                    }
+                    loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
+                        .methodFinder().filterByName("isCanDirectAddMaMl").first()
+                        .createHook {
+                            returnConstant(true)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.utils.PickerDetailDownloadManager\$Companion")
+                        .methodFinder()
+                        .filterByName("isCanDownload").first().createHook {
+                            returnConstant(true)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.utils.PickerDetailUtil")
+                        .methodFinder().filterByName("isCanAutoDownloadMaMl").first()
+                        .createHook {
+                            returnConstant(true)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponse")
+                        .methodFinder().filterByName("isPay").first().createHook {
+                        returnConstant(false)
+                    }
+                    loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponse")
+                        .methodFinder().filterByName("isBought").first()
+                        .createHook {
+                            returnConstant(true)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponseWrapper")
+                        .methodFinder().filterByName("isPay").first()
+                        .createHook {
+                            returnConstant(false)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponseWrapper")
+                        .methodFinder().filterByName("isBought").first()
+                        .createHook {
+                            returnConstant(true)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
+                        .methodFinder().filterByName("shouldCheckMamlBoughtState")
+                        .first().createHook {
+                            returnConstant(false)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
+                        .methodFinder()
+                        .filterByName("isTargetPositionMamlPayAndDownloading").first().createHook {
+                            returnConstant(false)
+                        }
+                    loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
+                        .methodFinder()
+                        .filterByName("checkIsIndependentProcessWidgetForPosition").first().createHook {
+                            returnConstant(true)
+                        }
+                } catch (t: Throwable) {
+                    Log.ex(t)
                 }
             }
 
             "com.miui.home" -> {
-                findMethod("com.miui.maml.widget.edit.MamlutilKt") {
-                    name == "themeManagerSupportPaidWidget"
-                }.hookAfter {
-                    it.result = false
-                }
-                findMethod("com.miui.home.launcher.gadget.MaMlPendingHostView") {
-                    name == "isCanAutoStartDownload"
-                }.hookAfter {
-                    it.result = true
+                try {
+                    loadClass("com.miui.maml.widget.edit.MamlutilKt").methodFinder().filterByName("themeManagerSupportPaidWidget").first().createHook {
+                        returnConstant(false)
+                    }
+                    loadClass("com.miui.home.launcher.gadget.MaMlPendingHostView").methodFinder().filterByName("isCanAutoStartDownload").first().createHook {
+                        returnConstant(true)
+                    }
+                } catch (t: Throwable) {
+                    Log.ex(t)
                 }
             }
 
