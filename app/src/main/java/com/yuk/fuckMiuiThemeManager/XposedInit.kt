@@ -141,50 +141,60 @@ class XposedInit : IXposedHookLoadPackage {
                     loadClass("com.miui.maml.widget.edit.MamlutilKt").methodFinder().filterByName("themeManagerSupportPaidWidget").first().createHook {
                         returnConstant(false)
                     }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
                         .methodFinder().filterByName("isCanDirectAddMaMl").first()
                         .createHook {
                             returnConstant(true)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.utils.PickerDetailDownloadManager\$Companion")
                         .methodFinder()
                         .filterByName("isCanDownload").first().createHook {
                             returnConstant(true)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.utils.PickerDetailUtil")
                         .methodFinder().filterByName("isCanAutoDownloadMaMl").first()
                         .createHook {
                             returnConstant(true)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponse")
                         .methodFinder().filterByName("isPay").first().createHook {
                         returnConstant(false)
                     }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponse")
                         .methodFinder().filterByName("isBought").first()
                         .createHook {
                             returnConstant(true)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponseWrapper")
                         .methodFinder().filterByName("isPay").first()
                         .createHook {
                             returnConstant(false)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.bean.PickerDetailResponseWrapper")
                         .methodFinder().filterByName("isBought").first()
                         .createHook {
                             returnConstant(true)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
                         .methodFinder().filterByName("shouldCheckMamlBoughtState")
                         .first().createHook {
                             returnConstant(false)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
                         .methodFinder()
                         .filterByName("isTargetPositionMamlPayAndDownloading").first().createHook {
                             returnConstant(false)
                         }
+
                     loadClass("com.miui.personalassistant.picker.business.detail.PickerDetailViewModel")
                         .methodFinder()
                         .filterByName("checkIsIndependentProcessWidgetForPosition").first().createHook {
@@ -200,6 +210,7 @@ class XposedInit : IXposedHookLoadPackage {
                     loadClass("com.miui.maml.widget.edit.MamlutilKt").methodFinder().filterByName("themeManagerSupportPaidWidget").first().createHook {
                         returnConstant(false)
                     }
+
                     loadClass("com.miui.home.launcher.gadget.MaMlPendingHostView").methodFinder().filterByName("isCanAutoStartDownload").first().createHook {
                         returnConstant(true)
                     }
@@ -208,9 +219,7 @@ class XposedInit : IXposedHookLoadPackage {
                 }
             }
 
-            else -> {
-                return
-            }
+            else -> { return }
         }
     }
 

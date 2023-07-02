@@ -10,16 +10,17 @@ plugins {
 }
 
 android {
-    compileSdk = 33
-    buildToolsVersion = "33.0.2"
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
     namespace = "com.yuk.fuckMiuiThemeManager"
     defaultConfig {
         applicationId = namespace
-        minSdk = 30
+        minSdk = 29
         targetSdk = 34
-        versionCode = 17
-        versionName = "1.7.4-for 0.07"
+        versionCode = 18
+        versionName = "1.8.0-for 0.07"
         ndk.abiFilters += "arm64-v8a"
+        ndk.abiFilters += "armeabi-v7a"
     }
     buildTypes {
         release {
@@ -29,8 +30,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_19
+        targetCompatibility = JavaVersion.VERSION_19
     }
     packaging {
         resources {
@@ -44,7 +45,7 @@ android {
         applicationVariants.all {
             outputs.all {
                 (this as BaseVariantOutputImpl).outputFileName =
-                    "FuckMiuiThemeManager-$versionName.apk"
+                    "FuckMiuiThemeManager For Qiqi-$versionName.apk"
             }
         }
     }
@@ -52,6 +53,6 @@ android {
 
 dependencies {
     compileOnly("de.robv.android.xposed:api:82")
-    implementation("com.github.kyuubiran:EzXHelper:2.0.5")
+    implementation("com.github.kyuubiran:EzXHelper:2.0.6")
     implementation("org.luckypray:DexKit:1.1.8")
 }
